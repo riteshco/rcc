@@ -30,18 +30,21 @@ typedef struct {
 
 #define token_append(ts, a)\
     do {\
-        if(ts.count >= ts.capacity) {\
-            if(ts.capacity == 0) ts.capacity = 256;\
-            else ts.capacity *= 2;\
-            ts.tokens = realloc(ts.tokens, ts.capacity*sizeof(*ts.tokens));\
+        if(ts->count >= ts->capacity) {\
+            if(ts->capacity == 0) ts->capacity = 256;\
+            else ts->capacity *= 2;\
+            ts->tokens = realloc(ts->tokens, ts->capacity*sizeof(*(ts->tokens)));\
         }\
-        ts.tokens[ts.count++] = a;\
+        ts->tokens[ts->count++] = a;\
     } while(0)
         
 
-void lexer(FILE *file) {
+Tokens* lexer(FILE *file) {
     char curr_char = fgetc(file);
-    Tokens tokens = {0};
+    Tokens* tokens = malloc(sizeof(Tokens));
+    tokens->tokens = NULL;
+    tokens->count = 0;
+    tokens->capacity = 0;
     while(curr_char != EOF) {
         char buffer[256] = {0};
         int len = 0;
@@ -54,7 +57,7 @@ void lexer(FILE *file) {
             while(isalnum(curr_char = fgetc(file))){
                 if(isalpha(curr_char)){
                     printf("error in enumerating digit\n");
-                    return;
+                    return tokens;
                 }
                 buffer[len++] = curr_char;
             }
@@ -107,21 +110,23 @@ void lexer(FILE *file) {
         }
     }
 
-    for(int i=0;i<tokens.count;i++){
-        printf("Token type: %d\n" , tokens.tokens[i].type);
-        if(tokens.tokens[i].value){
-            printf("Token's value : %s\n", tokens.tokens[i].value);
+    for(int i=0;i<tokens->count;i++){
+        printf("Token type: %d\n" , tokens->tokens[i].type);
+        if(tokens->tokens[i].value){
+            printf("Token's value : %s\n", tokens->tokens[i].value);
         }
     }
+    return tokens;
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        printf("Usage: egie <path/to/code.egg>\n");
+    if (argc != 2 || strlen(argv[1]) < 2 || argv[1][strlen(argv[1])-1] != 'c' || argv[1][strlen(argv[1])-2] != '.') {
+        printf("Usage: rcc <path/to/code.c>\n");
         return EXIT_FAILURE;
     }
 
     FILE *file = fopen(argv[1], "r");
-    lexer(file);
+    Tokens *toks = lexer(file);
+
     return 0;
 }
