@@ -17,4 +17,12 @@ typedef struct {
     AST_FUNC func;
 } AST_PROG;
 
+typedef struct {
+    Tokens* toks;
+    int pos;
+} Parser;
+
 AST_PROG parse(Tokens* toks);
+AST_FUNC parse_func(Parser* parser);
+AST_STMT parse_stmt(Parser* parser);
+AST_EXPR parse_expr(Parser* parser);

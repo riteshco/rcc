@@ -14,5 +14,7 @@ int main(int argc, char** argv) {
     FILE *file = fopen(argv[1], "r");
     Tokens *toks = lexer(file);
 
+    AST_PROG prog = parse(toks);
+
     return 0;
 }
