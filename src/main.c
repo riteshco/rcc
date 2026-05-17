@@ -3,6 +3,7 @@
 #include <string.h>
 #include "lexer.h"
 #include "parser.h"
+#include "codegen.h"
 
 
 int main(int argc, char** argv) {
@@ -15,6 +16,16 @@ int main(int argc, char** argv) {
     Tokens *toks = lexer(file);
 
     AST_PROG prog = parse(toks);
+
+    ASM_PROG asm_prog = generate_assembly(&prog);
+
+    FILE* output_file = fopen("return.s", "w");
+    emit_assembly(&asm_prog, output_file);
+    fclose(output_file);
+
+    system("gcc -o return return.s");
+
+    printf("Successful!\n");
 
     return 0;
 }

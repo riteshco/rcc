@@ -86,11 +86,11 @@ Tokens* lexer(FILE *file) {
         }
     }
 
-    for(int i=0;i<tokens->count;i++){
+    /* for(int i=0;i<tokens->count;i++){
         printf("Token type: %d\n" , tokens->tokens[i].type);
         if(tokens->tokens[i].value){
             printf("Token's value : %s\n", tokens->tokens[i].value);
         }
-    }
+    } */
     return tokens;
 }
