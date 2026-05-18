@@ -1,8 +1,23 @@
 #pragma once
 #include "lexer.h"
 
-typedef struct {
-    int value;
+typedef enum {
+    EXPR_INT,
+    EXPR_UNARY
+} ExprType;
+
+typedef enum {
+    UNOP_NEGATE,
+    UNOP_COMPLEMENT
+} UnaryOp;
+
+typedef struct AST_EXPR{
+    ExprType type;
+    
+    int int_value; // if type is EXPR_INT
+
+    UnaryOp unop; // if type is EXPR_UNARY
+    struct AST_EXPR* inner_expr;
 } AST_EXPR;
 
 typedef struct {

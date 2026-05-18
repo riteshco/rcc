@@ -1,7 +1,7 @@
 all: main
 
 main: src/main.c
-	gcc -o build/rcc src/main.c src/lexer.c src/parser.c src/codegen.c
+	gcc -o build/rcc src/main.c src/lexer.c src/parser.c src/codegen.c src/tacker.c
 
 clean:
 	rm build/rcc

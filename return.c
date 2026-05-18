@@ -1,3 +1,3 @@
 int main(void) {
-    return 49;
+    return ~(-2);
 }

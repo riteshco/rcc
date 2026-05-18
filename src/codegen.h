@@ -1,26 +1,42 @@
 #pragma once
 #include "parser.h"
+#include "tacker.h"
 #include <stdio.h>
 
 typedef enum {
     IMM,
-    REG
+    REG,
+    PSEUDO,
+    STACK
 } OperandType;
+
+typedef enum {
+    REG_EAX,    // return register
+    REG_R10D    // scratch register
+} HardwareReg;
 
 typedef struct {
     OperandType type;
     int imm_value; //only for type "immediate"
+
+    HardwareReg reg;
+    char* pseudo_name;
+    int stack_offset;
 } ASM_OPERAND;
 
 typedef enum {
     MOV,
-    RET
+    RET,
+    NEG,
+    NOT,
+    ALLOCATE
 } InstructionType;
 
 typedef struct {
     InstructionType type;
     ASM_OPERAND src;
     ASM_OPERAND dst;
+    int allocate_bytes;
 } ASM_INSTRUCTION;
 
 typedef struct {
@@ -34,5 +50,7 @@ typedef struct {
     ASM_FUNC func;
 } ASM_PROG;
 
-ASM_PROG generate_assembly(AST_PROG* prog);
+ASM_PROG generate_assembly(TackerProg* prog);
+void replace_pseudo_registers(ASM_PROG* prog);
+void fix_instructions(ASM_PROG* prog);
 void emit_assembly(ASM_PROG* prog, FILE* output_file);

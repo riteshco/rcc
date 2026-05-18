@@ -1,4 +1,4 @@
 .global main
 main:
-  movl $49, %eax
+  movl $32767, %eax
   ret

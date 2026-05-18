@@ -19,15 +19,30 @@ void expect(Parser* parser, TokenType expected_type) {
 }
 
 AST_EXPR parse_expr(Parser* parser) {
-    Token tok = consume(parser);
-    if (tok.type != INT_LITERAL) {
-        printf("Syntax error: Expected integer literal\n");
+    AST_EXPR expr;
+    Token next_tok = peek(parser);
+
+    if(next_tok.type == INT_LITERAL) {
+        Token tok = consume(parser);
+        expr.type = EXPR_INT;
+        expr.int_value = atoi(tok.value);
+        return expr;
+    } else if(next_tok.type == MINUS || next_tok.type == TILDE) {
+        Token op_tok = consume(parser);
+        expr.type = EXPR_UNARY;
+        expr.unop = (op_tok.type == MINUS) ? UNOP_NEGATE : UNOP_COMPLEMENT;
+        expr.inner_expr = malloc(sizeof(AST_EXPR));
+        *(expr.inner_expr) = parse_expr(parser);
+        return expr;
+    } else if(next_tok.type == OPAREN) {
+        Token tok = consume(parser);
+        expr = parse_expr(parser);
+        expect(parser, CPAREN);
+        return expr;
+    } else {
+        printf("Syntax Error: Invalid expression. Token type is %d\n", next_tok.type);
         exit(EXIT_FAILURE);
     }
-
-    AST_EXPR expr;
-    expr.value = atoi(tok.value);
-    return expr;
 }
 
 AST_STMT parse_stmt(Parser* parser) {

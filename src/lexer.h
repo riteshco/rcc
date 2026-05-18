@@ -13,6 +13,9 @@ typedef enum {
     CLOSE_CURL,
     MAIN,
     VOID,
+    TILDE,
+    MINUS,
+    DECREMENT,
 } TokenType;
 
 typedef struct {
