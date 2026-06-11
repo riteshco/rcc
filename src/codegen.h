@@ -11,8 +11,10 @@ typedef enum {
 } OperandType;
 
 typedef enum {
-    REG_EAX,    // return register
-    REG_R10D    // scratch register
+    REG_EAX,     // return register
+    REG_R10D,    // scratch register 1
+    REG_EDX,     // remainder register
+    REG_R11D     // scratch register 2
 } HardwareReg;
 
 typedef struct {
@@ -29,7 +31,12 @@ typedef enum {
     RET,
     NEG,
     NOT,
-    ALLOCATE
+    ALLOCATE,
+    ADD,
+    SUB,
+    IMUL,
+    IDIV,
+    CDQ         // Sign-extends EAX into EDX for division
 } InstructionType;
 
 typedef struct {

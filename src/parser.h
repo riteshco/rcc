@@ -2,8 +2,17 @@
 #include "lexer.h"
 
 typedef enum {
+    BINOP_ADD,
+    BINOP_SUB,
+    BINOP_MUL,
+    BINOP_DIV,
+    BINOP_MOD
+} BinaryOp;
+
+typedef enum {
     EXPR_INT,
-    EXPR_UNARY
+    EXPR_UNARY,
+    EXPR_BINARY
 } ExprType;
 
 typedef enum {
@@ -18,6 +27,10 @@ typedef struct AST_EXPR{
 
     UnaryOp unop; // if type is EXPR_UNARY
     struct AST_EXPR* inner_expr;
+
+    BinaryOp binop;
+    struct AST_EXPR* left;
+    struct AST_EXPR* right;
 } AST_EXPR;
 
 typedef struct {
@@ -41,4 +54,5 @@ typedef struct {
 AST_PROG parse(Tokens* toks);
 AST_FUNC parse_func(Parser* parser);
 AST_STMT parse_stmt(Parser* parser);
-AST_EXPR parse_expr(Parser* parser);
+AST_EXPR parse_factor(Parser* parser);
+AST_EXPR parse_expr(Parser* parser, int min_prec);

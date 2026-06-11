@@ -14,7 +14,8 @@ typedef struct {
 
 typedef enum {
     TACKER_RET,
-    TACKER_UNARY
+    TACKER_UNARY,
+    TACKER_BINARY
 } TackerInstructionType;
 
 typedef struct {
@@ -24,7 +25,11 @@ typedef struct {
 
     UnaryOp unop; // for type Unary
     TackerVal src;
-    TackerVal dst;
+
+    BinaryOp binop; // for type binary
+    TackerVal src1;
+    TackerVal src2;
+    TackerVal dst; // dst, will be used for both unary and binary
 } TackerInstruction;
 
 typedef struct {

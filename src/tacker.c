@@ -1,4 +1,5 @@
 #include "tacker.h"
+#include "parser.h"
 #include <stdlib.h>
 
 int tmp_counter = 0;
@@ -36,6 +37,23 @@ TackerVal emit_tacker_expr(AST_EXPR* expr, TackerFunc* func){
         inst.type = TACKER_UNARY;
         inst.unop = expr->unop;
         inst.src = src_val;
+        inst.dst = dst_val;
+
+        tacker_instruction_append(func, inst);
+        return dst_val;
+    } else if(expr->type == EXPR_BINARY) {
+        TackerVal v1 = emit_tacker_expr(expr->left, func);
+        TackerVal v2 = emit_tacker_expr(expr->right, func);
+
+        TackerVal dst_val;
+        dst_val.type = TACKER_VAL_VAR;
+        dst_val.name = make_temp();
+
+        TackerInstruction inst;
+        inst.type = TACKER_BINARY;
+        inst.binop = expr->binop;
+        inst.src1 = v1;
+        inst.src2 = v2;
         inst.dst = dst_val;
 
         tacker_instruction_append(func, inst);

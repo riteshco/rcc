@@ -1,4 +1,6 @@
 #include "codegen.h"
+#include "parser.h"
+#include "tacker.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,6 +55,34 @@ ASM_PROG generate_assembly(TackerProg* tacker_prog) {
             un_inst.src = gen_operand(t_inst.dst); 
             un_inst.dst = gen_operand(t_inst.dst);
             instruction_append((&asm_prog.func), un_inst);
+        } else if (t_inst.type == TACKER_BINARY) {
+            if (t_inst.binop == BINOP_ADD || t_inst.binop == BINOP_SUB || t_inst.binop == BINOP_MUL) {
+                ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src1), gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_inst);
+
+                ASM_INSTRUCTION math_inst;
+                if (t_inst.binop == BINOP_ADD) math_inst.type = ADD;
+                else if (t_inst.binop == BINOP_SUB) math_inst.type = SUB;
+                else math_inst.type = IMUL;
+
+                math_inst.src = gen_operand(t_inst.src2);
+                math_inst.dst = gen_operand(t_inst.dst);
+                instruction_append((&asm_prog.func), math_inst);
+            }
+            else if (t_inst.binop == BINOP_DIV || t_inst.binop == BINOP_MOD) {
+                ASM_INSTRUCTION mov_eax = {MOV, gen_operand(t_inst.src1), {REG, .reg=REG_EAX, 0}};
+                instruction_append((&asm_prog.func), mov_eax);
+
+                ASM_INSTRUCTION cdq_inst = {CDQ, {0}, {0}, 0};
+                instruction_append((&asm_prog.func), cdq_inst);
+
+                ASM_INSTRUCTION div_inst = {IDIV, gen_operand(t_inst.src1), {REG, .reg=REG_EAX}, 0};
+                instruction_append((&asm_prog.func), cdq_inst);
+
+                ASM_OPERAND result_reg = {REG, .reg= (t_inst.binop == BINOP_DIV) ? REG_EAX : REG_EDX};
+                ASM_INSTRUCTION mov_dst = {MOV, result_reg, gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_dst);
+            }
         }
     }
 
@@ -117,11 +147,28 @@ void fix_instructions(ASM_PROG *prog) {
     for(int i=0;i<prog->func.count;i++){
         ASM_INSTRUCTION inst = prog->func.instructions[i];
 
-        if(inst.type == MOV && inst.src.type == STACK && inst.dst.type == STACK) {
+        if((inst.type == MOV || inst.type == ADD || inst.type == SUB) && inst.src.type == STACK && inst.dst.type == STACK) {
             ASM_INSTRUCTION fix1 = {MOV, inst.src, {REG, .reg=REG_R10D}, 0};
             new_instructions[new_count++] = fix1;
 
-            ASM_INSTRUCTION fix2 = {MOV, {REG, .reg=REG_R10D}, inst.dst, 0};
+            ASM_INSTRUCTION fix2 = {inst.type, {REG, .reg=REG_R10D}, inst.dst, 0};
+            new_instructions[new_count++] = fix2;
+        }
+        else if (inst.type == IMUL && inst.dst.type == STACK) {
+            ASM_INSTRUCTION fix1 = {MOV, inst.dst, {REG, .reg=REG_R11D}, 0};
+            new_instructions[new_count++] = fix1;
+
+            ASM_INSTRUCTION fix2 = {IMUL, inst.src, {REG, .reg=REG_R11D}, 0};
+            new_instructions[new_count++] = fix2;
+
+            ASM_INSTRUCTION fix3 = {MOV, {REG, .reg=REG_R11D}, inst.dst, 0};
+            new_instructions[new_count++] = fix3;
+        }
+        else if (inst.type == IDIV && inst.src.type == IMM) {
+            ASM_INSTRUCTION fix1 = {MOV, inst.src, {REG, .reg=REG_R10D}, 0};
+            new_instructions[new_count++] = fix1;
+
+            ASM_INSTRUCTION fix2 = {IDIV, {REG, .reg=REG_R10D}, {0}, 0};
             new_instructions[new_count++] = fix2;
         } else {
             new_instructions[new_count++] = inst;
@@ -139,6 +186,8 @@ void emit_operand(ASM_OPERAND op, FILE* output_file) {
     } else if (op.type == REG) {
         if(op.reg == REG_EAX) fprintf(output_file, "%%eax");
         if(op.reg == REG_R10D) fprintf(output_file, "%%r10d");
+        if(op.reg == REG_R11D) fprintf(output_file, "%%r11d");
+        if(op.reg == REG_EDX) fprintf(output_file, "%%edx");
     } else if (op.type == STACK) {
         fprintf(output_file, "%d(%%rbp)", op.stack_offset);
     }
@@ -171,6 +220,20 @@ void emit_assembly(ASM_PROG* prog, FILE* output_file) {
             fprintf(output_file, "    movq %%rbp, %%rsp\n");
             fprintf(output_file, "    popq %%rbp\n");
             fprintf(output_file, "    ret\n");
+        } else if (inst.type == ADD || inst.type == SUB || inst.type == IMUL) {
+            if (inst.type == ADD) fprintf(output_file, "    addl ");
+            if (inst.type == SUB) fprintf(output_file, "    subl ");
+            if (inst.type == IMUL) fprintf(output_file, "    imull ");
+            emit_operand(inst.src, output_file);
+            fprintf(output_file, ", ");
+            emit_operand(inst.dst, output_file);
+            fprintf(output_file, "\n");
+        } else if (inst.type == IDIV) {
+            fprintf(output_file, "    idivl ");
+            emit_operand(inst.src, output_file);
+            fprintf(output_file, "\n");
+        } else if (inst.type == CDQ) {
+            fprintf(output_file, "    cdq\n");
         }
     }
 }

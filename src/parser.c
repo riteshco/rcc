@@ -2,6 +2,20 @@
 #include "lexer.h"
 #include <stdlib.h>
 
+int get_precedence(TokenType type) {
+    switch (type) {
+        case MUL:
+        case DIV:
+        case REM:
+            return 50;
+        case PLUS:
+        case MINUS:
+            return 45;
+        default:
+            return 0;
+    }
+}
+
 Token peek(Parser* parser) {
     return parser->toks->tokens[parser->pos];
 }
@@ -18,7 +32,8 @@ void expect(Parser* parser, TokenType expected_type) {
     }
 }
 
-AST_EXPR parse_expr(Parser* parser) {
+
+AST_EXPR parse_factor(Parser* parser) {
     AST_EXPR expr;
     Token next_tok = peek(parser);
 
@@ -32,11 +47,11 @@ AST_EXPR parse_expr(Parser* parser) {
         expr.type = EXPR_UNARY;
         expr.unop = (op_tok.type == MINUS) ? UNOP_NEGATE : UNOP_COMPLEMENT;
         expr.inner_expr = malloc(sizeof(AST_EXPR));
-        *(expr.inner_expr) = parse_expr(parser);
+        *(expr.inner_expr) = parse_factor(parser);
         return expr;
     } else if(next_tok.type == OPAREN) {
         Token tok = consume(parser);
-        expr = parse_expr(parser);
+        expr = parse_expr(parser, 0);
         expect(parser, CPAREN);
         return expr;
     } else {
@@ -45,11 +60,43 @@ AST_EXPR parse_expr(Parser* parser) {
     }
 }
 
+AST_EXPR parse_expr(Parser* parser, int min_prec) {
+    AST_EXPR left = parse_factor(parser);
+    Token next_tok = peek(parser);
+    int prec = get_precedence(next_tok.type);
+
+    while(prec >= min_prec && prec != 0) {
+        Token op_tok = consume(parser);
+        
+        AST_EXPR right = parse_expr(parser, prec+1);
+
+        AST_EXPR new_expr;
+        new_expr.type = EXPR_BINARY;
+
+        if(op_tok.type == PLUS) new_expr.binop = BINOP_ADD;
+        else if (op_tok.type == MINUS) new_expr.binop = BINOP_SUB;
+        else if (op_tok.type == MUL) new_expr.binop = BINOP_MUL;
+        else if (op_tok.type == DIV) new_expr.binop = BINOP_DIV;
+        else if (op_tok.type == REM) new_expr.binop = BINOP_MOD;
+
+        new_expr.left = malloc(sizeof(AST_EXPR));
+        *new_expr.left = left;
+
+        new_expr.right = malloc(sizeof(AST_EXPR));
+        *new_expr.right = right;
+
+        left = new_expr;
+        next_tok = peek(parser);
+        prec = get_precedence(next_tok.type);
+    }
+    return left;
+}
+
 AST_STMT parse_stmt(Parser* parser) {
     AST_STMT stmt;
 
     expect(parser, RETURN);
-    stmt.expr = parse_expr(parser);
+    stmt.expr = parse_expr(parser, 0);
     expect(parser, SEMI_COLON);
 
     return stmt;
@@ -82,3 +129,4 @@ AST_PROG parse(Tokens* toks) {
 
     return prog;
 }
+

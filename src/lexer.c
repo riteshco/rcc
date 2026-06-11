@@ -96,16 +96,32 @@ Tokens* lexer(FILE *file) {
                 token_append(tokens, token);
                 curr_char = next_char;
             }
+        } else if (curr_char == '+') {
+            Token token = {.type=PLUS};
+            token_append(tokens, token);
+            curr_char = fgetc(file);
+        } else if (curr_char == '*') {
+            Token token = {.type=MUL};
+            token_append(tokens, token);
+            curr_char = fgetc(file);
+        } else if (curr_char == '/') {
+            Token token = {.type=DIV};
+            token_append(tokens, token);
+            curr_char = fgetc(file);
+        } else if (curr_char == '%') {
+            Token token = {.type=REM};
+            token_append(tokens, token);
+            curr_char = fgetc(file);
         } else {
             curr_char = fgetc(file);
         }
     }
 
-    for(int i=0;i<tokens->count;i++){
+    /* for(int i=0;i<tokens->count;i++){
         printf("Token type: %d\n" , tokens->tokens[i].type);
         if(tokens->tokens[i].value){
             printf("Token's value : %s\n", tokens->tokens[i].value);
         }
-    }
+    } */
     return tokens;
 }

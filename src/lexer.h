@@ -16,6 +16,10 @@ typedef enum {
     TILDE,
     MINUS,
     DECREMENT,
+    PLUS,
+    MUL,
+    DIV,
+    REM
 } TokenType;
 
 typedef struct {
