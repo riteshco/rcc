@@ -112,6 +112,70 @@ Tokens* lexer(FILE *file) {
             Token token = {.type=REM};
             token_append(tokens, token);
             curr_char = fgetc(file);
+        } else if (curr_char == '!') {
+            char next_char = fgetc(file);
+            if (next_char == '=') {
+                Token token = {.type=NOT_EQUAL};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                Token token = {.type=BANG};
+                token_append(tokens, token);
+                curr_char = next_char;
+            }
+        } else if (curr_char == '=') {
+            char next_char = fgetc(file);
+            if(next_char == '=') {
+                Token token = {.type=EQUAL_EQUAL};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                // error for now , before implementing variables in my compiler
+                printf("Error: Single '=' not allowed yet :(\n");
+                exit(EXIT_FAILURE);
+            }
+        } else if (curr_char == '<') {
+            char next_char = fgetc(file);
+            if(next_char == '=') {
+                Token token = {.type=LESS_THAN_OR_EQUAL};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                Token token = {.type=LESS_THAN};
+                token_append(tokens, token);
+                curr_char = next_char;
+            }
+        } else if (curr_char == '>') {
+            char next_char = fgetc(file);
+            if(next_char == '=') {
+                Token token = {.type=GREATER_THAN_OR_EQUAL};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                Token token = {.type=GREATER_THAN};
+                token_append(tokens, token);
+                curr_char = next_char;
+            }
+        } else if (curr_char == '&') {
+            char next_char = fgetc(file);
+            if(next_char == '&') {
+                Token token = {.type=AND};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                printf("Error: Bitwise '&' not supported yet :(\n");
+                exit(EXIT_FAILURE);
+            }
+        } else if (curr_char == '|') {
+            char next_char = fgetc(file);
+            if(next_char == '|') {
+                Token token = {.type=OR};
+                token_append(tokens, token);
+                curr_char = fgetc(file);
+            } else {
+                printf("Error: Bitwise '|' is not supported yet :(\n");
+                exit(EXIT_FAILURE);
+            }
         } else {
             curr_char = fgetc(file);
         }

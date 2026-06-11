@@ -11,6 +11,14 @@ int get_precedence(TokenType type) {
         case PLUS:
         case MINUS:
             return 45;
+        case LESS_THAN: case LESS_THAN_OR_EQUAL: case GREATER_THAN: case GREATER_THAN_OR_EQUAL:
+            return 35;
+        case EQUAL_EQUAL: case NOT_EQUAL:
+            return 30;
+        case AND:
+            return 10;
+        case OR:
+            return 5;
         default:
             return 0;
     }
@@ -42,7 +50,7 @@ AST_EXPR parse_factor(Parser* parser) {
         expr.type = EXPR_INT;
         expr.int_value = atoi(tok.value);
         return expr;
-    } else if(next_tok.type == MINUS || next_tok.type == TILDE) {
+    } else if(next_tok.type == MINUS || next_tok.type == TILDE || next_tok.type == BANG) {
         Token op_tok = consume(parser);
         expr.type = EXPR_UNARY;
         expr.unop = (op_tok.type == MINUS) ? UNOP_NEGATE : UNOP_COMPLEMENT;
@@ -78,6 +86,14 @@ AST_EXPR parse_expr(Parser* parser, int min_prec) {
         else if (op_tok.type == MUL) new_expr.binop = BINOP_MUL;
         else if (op_tok.type == DIV) new_expr.binop = BINOP_DIV;
         else if (op_tok.type == REM) new_expr.binop = BINOP_MOD;
+        else if (op_tok.type == AND) new_expr.binop = BINOP_AND;
+        else if (op_tok.type == OR) new_expr.binop = BINOP_OR;
+        else if (op_tok.type == EQUAL_EQUAL) new_expr.binop = BINOP_EQUAL;
+        else if (op_tok.type == NOT_EQUAL) new_expr.binop = BINOP_NOT_EQUAL;
+        else if (op_tok.type == LESS_THAN) new_expr.binop = BINOP_LESS_THAN;
+        else if (op_tok.type == LESS_THAN_OR_EQUAL) new_expr.binop = BINOP_LESS_THAN_OR_EQUAL;
+        else if (op_tok.type == GREATER_THAN) new_expr.binop = BINOP_GREATER_THAN;
+        else if (op_tok.type == GREATER_THAN_OR_EQUAL) new_expr.binop = BINOP_GREATER_THAN_OR_EQUAL;
 
         new_expr.left = malloc(sizeof(AST_EXPR));
         *new_expr.left = left;

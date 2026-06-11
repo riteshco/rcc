@@ -6,7 +6,15 @@ typedef enum {
     BINOP_SUB,
     BINOP_MUL,
     BINOP_DIV,
-    BINOP_MOD
+    BINOP_MOD,
+    BINOP_AND,
+    BINOP_OR,
+    BINOP_EQUAL,
+    BINOP_NOT_EQUAL,
+    BINOP_LESS_THAN,
+    BINOP_LESS_THAN_OR_EQUAL,
+    BINOP_GREATER_THAN,
+    BINOP_GREATER_THAN_OR_EQUAL
 } BinaryOp;
 
 typedef enum {
@@ -17,7 +25,8 @@ typedef enum {
 
 typedef enum {
     UNOP_NEGATE,
-    UNOP_COMPLEMENT
+    UNOP_COMPLEMENT,
+    UNOP_NOT
 } UnaryOp;
 
 typedef struct AST_EXPR{
