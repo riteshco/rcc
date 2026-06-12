@@ -122,32 +122,27 @@ ASM_PROG generate_assembly(TackerProg* tacker_prog) {
                 ASM_INSTRUCTION mov_dst = {MOV, {REG, .reg=REG_EAX}, gen_operand(t_inst.dst), 0};
                 instruction_append((&asm_prog.func), mov_dst);
             }
-            else if (t_inst.type == TACKER_COPY) {
-                ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src1), gen_operand(t_inst.dst), 0};
-                instruction_append((&asm_prog.func), mov_inst);
-            }
-            else if (t_inst.type == TACKER_LABEL) {
-                ASM_INSTRUCTION lbl = {LABEL, {0}, {0}, 0};
-                // Repurpose pseudo_name to hold the label string
-                lbl.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
-                instruction_append((&asm_prog.func), lbl);
-            }
-            else if (t_inst.type == TACKER_JUMP) {
-                ASM_INSTRUCTION jmp = {JMP, {0}, {0}, 0};
-                jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
-                instruction_append((&asm_prog.func), jmp);
-            }
-            else if (t_inst.type == TACKER_JMP_IF_ZERO || t_inst.type == TACKER_JMP_IF_NOT_ZERO) {
-                ASM_INSTRUCTION cmp_inst = {CMP, {IMM, .imm_value=0}, gen_operand(t_inst.condition), 0};
-                instruction_append((&asm_prog.func), cmp_inst);
+        } else if (t_inst.type == TACKER_COPY) {
+            ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src1), gen_operand(t_inst.dst), 0};
+            instruction_append((&asm_prog.func), mov_inst);
+        } else if (t_inst.type == TACKER_LABEL) {
+            ASM_INSTRUCTION lbl = {LABEL, {0}, {0}, 0};
+            // Repurpose pseudo_name to hold the label string
+            lbl.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+            instruction_append((&asm_prog.func), lbl);
+        } else if (t_inst.type == TACKER_JUMP) {
+            ASM_INSTRUCTION jmp = {JMP, {0}, {0}, 0};
+            jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+            instruction_append((&asm_prog.func), jmp);
+        } else if (t_inst.type == TACKER_JMP_IF_ZERO || t_inst.type == TACKER_JMP_IF_NOT_ZERO) {
+            ASM_INSTRUCTION cmp_inst = {CMP, {IMM, .imm_value=0}, gen_operand(t_inst.condition), 0};
+            instruction_append((&asm_prog.func), cmp_inst);
 
-                ASM_INSTRUCTION jmp = {(t_inst.type == TACKER_JMP_IF_ZERO) ? JE : JNE, {0}, {0}, 0};
-                jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
-                instruction_append((&asm_prog.func), jmp);
-            }
+            ASM_INSTRUCTION jmp = {(t_inst.type == TACKER_JMP_IF_ZERO) ? JE : JNE, {0}, {0}, 0};
+            jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+            instruction_append((&asm_prog.func), jmp);
         }
     }
-
     return asm_prog;
 }
 

@@ -1,3 +1,3 @@
 int main(void) {
-    return 1 || (4 == 4);
+    return 5 >= 5 && (4 == 4);
 }
