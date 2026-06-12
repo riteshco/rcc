@@ -53,7 +53,9 @@ AST_EXPR parse_factor(Parser* parser) {
     } else if(next_tok.type == MINUS || next_tok.type == TILDE || next_tok.type == BANG) {
         Token op_tok = consume(parser);
         expr.type = EXPR_UNARY;
-        expr.unop = (op_tok.type == MINUS) ? UNOP_NEGATE : UNOP_COMPLEMENT;
+        if(op_tok.type == MINUS) expr.unop = UNOP_NEGATE;
+        else if(op_tok.type == TILDE) expr.unop = UNOP_COMPLEMENT;
+        else expr.unop = UNOP_NOT;
         expr.inner_expr = malloc(sizeof(AST_EXPR));
         *(expr.inner_expr) = parse_factor(parser);
         return expr;

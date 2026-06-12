@@ -15,7 +15,12 @@ typedef struct {
 typedef enum {
     TACKER_RET,
     TACKER_UNARY,
-    TACKER_BINARY
+    TACKER_BINARY,
+    TACKER_COPY,
+    TACKER_JUMP,
+    TACKER_JMP_IF_ZERO,
+    TACKER_JMP_IF_NOT_ZERO,
+    TACKER_LABEL
 } TackerInstructionType;
 
 typedef struct {
@@ -30,6 +35,9 @@ typedef struct {
     TackerVal src1;
     TackerVal src2;
     TackerVal dst; // dst, will be used for both unary and binary
+
+    char* target_name; // for jumps
+    TackerVal condition; // The value to check for JumpIfZero / JumpIfNotZero
 } TackerInstruction;
 
 typedef struct {

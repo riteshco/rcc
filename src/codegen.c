@@ -16,7 +16,7 @@
     } while(0)
 
 ASM_OPERAND gen_operand(TackerVal val) {
-    ASM_OPERAND op;
+    ASM_OPERAND op = {0};
     if (val.type == TACKER_VAL_INT) {
         op.type = IMM;
         op.imm_value = val.int_val;
@@ -45,16 +45,34 @@ ASM_PROG generate_assembly(TackerProg* tacker_prog) {
             instruction_append((&asm_prog.func), ret_inst);
         } 
         else if (t_inst.type == TACKER_UNARY) {
-            // movl src, dst
-            ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src), gen_operand(t_inst.dst), 0};
-            instruction_append((&asm_prog.func), mov_inst);
-            
-            // negl dst OR notl dst
-            ASM_INSTRUCTION un_inst;
-            un_inst.type = (t_inst.unop == UNOP_NEGATE) ? NEG : NOT;
-            un_inst.src = gen_operand(t_inst.dst); 
-            un_inst.dst = gen_operand(t_inst.dst);
-            instruction_append((&asm_prog.func), un_inst);
+            if (t_inst.unop == UNOP_NOT) {
+                // 1. cmpl $0, src (Check if the source is 0)
+                ASM_INSTRUCTION cmp_inst = {CMP, {IMM, .imm_value=0}, gen_operand(t_inst.src), 0};
+                instruction_append((&asm_prog.func), cmp_inst);
+
+                // 2. movl $0, %eax (Zero out EAX)
+                ASM_INSTRUCTION mov_zero = {MOV, {IMM, .imm_value=0}, {REG, .reg=REG_EAX}, 0};
+                instruction_append((&asm_prog.func), mov_zero);
+
+                // 3. sete %al (If source was 0, set EAX to 1. If not 0, it stays 0!)
+                ASM_INSTRUCTION set_inst = {SETE, {0}, {REG, .reg=REG_EAX}, 0};
+                instruction_append((&asm_prog.func), set_inst);
+
+                // 4. movl %eax, dst (Move the result into the destination)
+                ASM_INSTRUCTION mov_dst = {MOV, {REG, .reg=REG_EAX}, gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_dst);
+            } else {    
+                // movl src, dst
+                ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src), gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_inst);
+                
+                // negl dst OR notl dst
+                ASM_INSTRUCTION un_inst;
+                un_inst.type = (t_inst.unop == UNOP_NEGATE) ? NEG : NOT;
+                un_inst.src = gen_operand(t_inst.dst); 
+                un_inst.dst = gen_operand(t_inst.dst);
+                instruction_append((&asm_prog.func), un_inst);
+            }
         } else if (t_inst.type == TACKER_BINARY) {
             if (t_inst.binop == BINOP_ADD || t_inst.binop == BINOP_SUB || t_inst.binop == BINOP_MUL) {
                 ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src1), gen_operand(t_inst.dst), 0};
@@ -82,6 +100,50 @@ ASM_PROG generate_assembly(TackerProg* tacker_prog) {
                 ASM_OPERAND result_reg = {REG, .reg= (t_inst.binop == BINOP_DIV) ? REG_EAX : REG_EDX};
                 ASM_INSTRUCTION mov_dst = {MOV, result_reg, gen_operand(t_inst.dst), 0};
                 instruction_append((&asm_prog.func), mov_dst);
+            }
+            else if (t_inst.binop >= BINOP_EQUAL && t_inst.binop <= BINOP_GREATER_THAN_OR_EQUAL) {
+                ASM_INSTRUCTION cmp_inst = {CMP, gen_operand(t_inst.src2), gen_operand(t_inst.src1), 0};
+                instruction_append((&asm_prog.func), cmp_inst);
+
+                ASM_INSTRUCTION mov_zero = {MOV, {IMM, .imm_value=0}, {REG, .reg=REG_EAX}, 0};
+                instruction_append((&asm_prog.func), mov_zero);
+
+                ASM_INSTRUCTION set_inst = {0};
+                if (t_inst.binop == BINOP_EQUAL) set_inst.type = SETE;
+                else if (t_inst.binop == BINOP_NOT_EQUAL) set_inst.type = SETNE;
+                else if (t_inst.binop == BINOP_LESS_THAN) set_inst.type = SETL;
+                else if (t_inst.binop == BINOP_LESS_THAN_OR_EQUAL) set_inst.type = SETLE;
+                else if (t_inst.binop == BINOP_GREATER_THAN) set_inst.type = SETG;
+                else if (t_inst.binop == BINOP_GREATER_THAN_OR_EQUAL) set_inst.type = SETGE;
+
+                set_inst.dst = (ASM_OPERAND){REG, .reg=REG_EAX}; 
+                instruction_append((&asm_prog.func), set_inst);
+
+                ASM_INSTRUCTION mov_dst = {MOV, {REG, .reg=REG_EAX}, gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_dst);
+            }
+            else if (t_inst.type == TACKER_COPY) {
+                ASM_INSTRUCTION mov_inst = {MOV, gen_operand(t_inst.src1), gen_operand(t_inst.dst), 0};
+                instruction_append((&asm_prog.func), mov_inst);
+            }
+            else if (t_inst.type == TACKER_LABEL) {
+                ASM_INSTRUCTION lbl = {LABEL, {0}, {0}, 0};
+                // Repurpose pseudo_name to hold the label string
+                lbl.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+                instruction_append((&asm_prog.func), lbl);
+            }
+            else if (t_inst.type == TACKER_JUMP) {
+                ASM_INSTRUCTION jmp = {JMP, {0}, {0}, 0};
+                jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+                instruction_append((&asm_prog.func), jmp);
+            }
+            else if (t_inst.type == TACKER_JMP_IF_ZERO || t_inst.type == TACKER_JMP_IF_NOT_ZERO) {
+                ASM_INSTRUCTION cmp_inst = {CMP, {IMM, .imm_value=0}, gen_operand(t_inst.condition), 0};
+                instruction_append((&asm_prog.func), cmp_inst);
+
+                ASM_INSTRUCTION jmp = {(t_inst.type == TACKER_JMP_IF_ZERO) ? JE : JNE, {0}, {0}, 0};
+                jmp.src = (ASM_OPERAND){PSEUDO, .pseudo_name = t_inst.target_name};
+                instruction_append((&asm_prog.func), jmp);
             }
         }
     }
@@ -147,7 +209,7 @@ void fix_instructions(ASM_PROG *prog) {
     for(int i=0;i<prog->func.count;i++){
         ASM_INSTRUCTION inst = prog->func.instructions[i];
 
-        if((inst.type == MOV || inst.type == ADD || inst.type == SUB) && inst.src.type == STACK && inst.dst.type == STACK) {
+        if((inst.type == MOV || inst.type == ADD || inst.type == SUB || inst.type == CMP) && inst.src.type == STACK && inst.dst.type == STACK) {
             ASM_INSTRUCTION fix1 = {MOV, inst.src, {REG, .reg=REG_R10D}, 0};
             new_instructions[new_count++] = fix1;
 
@@ -169,6 +231,12 @@ void fix_instructions(ASM_PROG *prog) {
             new_instructions[new_count++] = fix1;
 
             ASM_INSTRUCTION fix2 = {IDIV, {REG, .reg=REG_R10D}, {0}, 0};
+            new_instructions[new_count++] = fix2;
+        } else if (inst.type == CMP && inst.dst.type == IMM) {
+            ASM_INSTRUCTION fix1 = {MOV, inst.dst, {REG, .reg=REG_R11D}, 0};
+            new_instructions[new_count++] = fix1;
+            
+            ASM_INSTRUCTION fix2 = {CMP, inst.src, {REG, .reg=REG_R11D}, 0};
             new_instructions[new_count++] = fix2;
         } else {
             new_instructions[new_count++] = inst;
@@ -234,6 +302,35 @@ void emit_assembly(ASM_PROG* prog, FILE* output_file) {
             fprintf(output_file, "\n");
         } else if (inst.type == CDQ) {
             fprintf(output_file, "    cdq\n");
+        } else if (inst.type == CMP) {
+            fprintf(output_file, "    cmpl ");
+            emit_operand(inst.src, output_file);
+            fprintf(output_file, ", ");
+            emit_operand(inst.dst, output_file);
+            fprintf(output_file, "\n");
+        } else if (inst.type >= SETE && inst.type <= SETLE) {
+            if (inst.type == SETE) fprintf(output_file, "    sete ");
+            else if (inst.type == SETNE) fprintf(output_file, "    setne ");
+            else if (inst.type == SETG) fprintf(output_file, "    setg ");
+            else if (inst.type == SETGE) fprintf(output_file, "    setge ");
+            else if (inst.type == SETL) fprintf(output_file, "    setl ");
+            else if (inst.type == SETLE) fprintf(output_file, "    setle ");
+            
+            // Special rule: if it's REG_EAX, print %al instead!
+            if (inst.dst.type == REG && inst.dst.reg == REG_EAX) {
+                fprintf(output_file, "%%al\n");
+            } else {
+                emit_operand(inst.dst, output_file);
+                fprintf(output_file, "\n");
+            }
+        } else if (inst.type == LABEL) {
+            fprintf(output_file, ".%s:\n", inst.src.pseudo_name);
+        } else if (inst.type == JMP || inst.type == JE || inst.type == JNE) {
+            if (inst.type == JMP) fprintf(output_file, "    jmp ");
+            else if (inst.type == JE) fprintf(output_file, "    je ");
+            else if (inst.type == JNE) fprintf(output_file, "    jne ");
+            
+            fprintf(output_file, ".%s\n", inst.src.pseudo_name);
         }
     }
 }

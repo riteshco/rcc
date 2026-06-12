@@ -36,7 +36,18 @@ typedef enum {
     SUB,
     IMUL,
     IDIV,
-    CDQ         // Sign-extends EAX into EDX for division
+    CDQ,         // Sign-extends EAX into EDX for division
+    CMP,
+    JMP,
+    JE,
+    JNE,
+    LABEL,      // foo:
+    SETE,       // ==
+    SETNE,      // !=
+    SETG,       // >
+    SETGE,      // >=
+    SETL,       // <
+    SETLE       // <=
 } InstructionType;
 
 typedef struct {
